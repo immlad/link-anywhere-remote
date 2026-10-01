@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>LinkDesk Host</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, system-ui, Segoe UI, Roboto, sans-serif;
+    margin: 0; padding: 32px; background: #0f172a; color: #e2e8f0; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: #94a3b8; margin: 0 0 24px; font-size: 13px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px; }
+  .label { font-size: 11px; text-transform: uppercase; color: #94a3b8;
+    letter-spacing: 0.08em; margin-bottom: 6px; }
+  .code { font-family: ui-monospace, Menlo, monospace; font-size: 22px;
+    font-weight: 600; word-break: break-all; }
+  .link { font-family: ui-monospace, monospace; font-size: 13px;
+    color: #60a5fa; word-break: break-all; }
+  button { background: #3b82f6; color: white; border: 0; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer; }
+  button:hover { background: #2563eb; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .status { display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 12px; background: #334155; }
+  .status.live { background: #065f46; color: #a7f3d0; }
+  input[type=text] { background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+    padding: 8px 10px; border-radius: 6px; font-size: 13px; width: 100%;
+    box-sizing: border-box; margin-bottom: 10px; }
+  #log { font-family: ui-monospace, monospace; font-size: 11px; color: #64748b;
+    max-height: 140px; overflow: auto; }
+</style>
+</head>
+<body>
+  <h1>LinkDesk Host</h1>
+  <p class="sub">Share your sharing code or link. Keep this window open.</p>
+
+  <div class="card">
+    <div class="label">Status</div>
+    <div><span id="status" class="status">Starting…</span>
+      <span id="peers" style="margin-left:8px; color:#94a3b8; font-size:12px;"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Sharing code</div>
+    <div class="code" id="code">—</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Shareable link</div>
+    <input id="viewerUrl" type="text" readonly />
+    <div class="row">
+      <button id="copy">Copy link</button>
+      <span id="copied" style="color:#34d399; font-size:12px;"></span>
+    </div>
+    <p style="color:#94a3b8; font-size:12px; margin-top:12px; margin-bottom:0;">
+      Open this link in any browser to view and control this computer.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="label">Log</div>
+    <div id="log"></div>
+  </div>
+
+<script type="module">
+import { Peer } from "./peerjs.min.mjs";
+
+const VIEWER_BASE = "https://YOUR-GITHUB-PAGES-URL/viewer";
+
+const $ = (id) => document.getElementById(id);
+const log = (m) => { const l = $("log"); l.innerHTML += `<div>${new Date().toLocaleTimeString()} — ${m}</div>`; l.scrollTop = l.scrollHeight; };
+
+function randomId() {
+  return "linkdesk-" + Math.random().toString(36).slice(2, 8);
+}
+
+async function start() {
+  const info = await window.linkdesk.getScreenSource();
+  log("Screen: " + info.width + "x" + info.height);
+
+  // Capture the desktop as a MediaStream via Electron's desktopCapturer id.
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: {
+      mandatory: {
+        chromeMediaSource: "desktop",
+        chromeMediaSourceId: info.id,
+        minWidth: 1280, maxWidth: 1920,
+        minHeight: 720, maxHeight: 1080,
+        maxFrameRate: 30,
+      },
+    },
+  });
+  log("Screen capture started");
+
+  const id = randomId();
+  const peer = new Peer(id);
+  const peersSet = new Set();
+
+  peer.on("open", (openId) => {
+    $("status").textContent = "Online";
+    $("status").classList.add("live");
+    $("code").textContent = openId;
+    $("viewerUrl").value = `${VIEWER_BASE}#${openId}`;
+    log("Peer ready: " + openId);
+  });
+
+  peer.on("connection", (conn) => {
+    peersSet.add(conn.peer);
+    $("peers").textContent = `${peersSet.size} viewer(s)`;
+    log("Viewer connected: " + conn.peer);
+
+    conn.on("data", (ev) => {
+      if (ev && ev.type === "request-stream") {
+        const call = peer.call(conn.peer, stream);
+        call.on("close", () => log("Call ended: " + conn.peer));
+      } else if (ev && typeof ev === "object" && ev.type) {
+        window.linkdesk.inputEvent(ev);
+      }
+    });
+    conn.on("close", () => {
+      peersSet.delete(conn.peer);
+      $("peers").textContent = peersSet.size ? `${peersSet.size} viewer(s)` : "";
+      log("Viewer left: " + conn.peer);
+    });
+  });
+
+  peer.on("error", (e) => {
+    log("Error: " + e.message);
+    $("status").textContent = "Error";
+    $("status").classList.remove("live");
+  });
+}
+
+$("copy").addEventListener("click", async () => {
+  await navigator.clipboard.writeText($("viewerUrl").value);
+  $("copied").textContent = "Copied!";
+  setTimeout(() => ($("copied").textContent = ""), 1500);
+});
+
+start().catch((e) => {
+  log("Fatal: " + (e.message || e));
+  $("status").textContent = "Failed to start";
+});
+</script>
+</body>
+</html>
