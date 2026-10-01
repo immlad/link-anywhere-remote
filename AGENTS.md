@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Architecture
+
+- The downloadable desktop host agent lives in `electron-host/` and is zipped to `public/linkdesk-host.zip` at build time — keeping it outside `src/` prevents Electron/Node code from leaking into the static web bundle.
