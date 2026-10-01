@@ -79,8 +79,72 @@ const VIEWER_BASE = "https://id-preview--3d93dc29-7e73-4922-8726-5d4089f7f253.lo
 const $ = (id) => document.getElementById(id);
 const log = (m) => { const l = $("log"); l.innerHTML += `<div>${new Date().toLocaleTimeString()} — ${m}</div>`; l.scrollTop = l.scrollHeight; };
 
-function randomId() {
-  return "linkdesk-" + Math.random().toString(36).slice(2, 8);
+const CODE_KEY = "linkdesk-custom-code";
+
+function sanitizeCode(s) {
+  return (s || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32);
+}
+
+function getSavedCode() {
+  return localStorage.getItem(CODE_KEY) || "";
+}
+
+let peer = null;
+let currentStream = null;
+const peersSet = new Set();
+
+function connectPeer(code) {
+  if (peer) { try { peer.destroy(); } catch (_) {} }
+  peersSet.clear();
+  $("peers").textContent = "";
+
+  const id = "linkdesk-" + code;
+  peer = new Peer(id);
+  $("status").textContent = "Connecting…";
+  $("status").classList.remove("live");
+
+  peer.on("open", (openId) => {
+    $("status").textContent = "Online";
+    $("status").classList.add("live");
+    $("code").textContent = code;
+    $("viewerUrl").value = `${VIEWER_BASE}#${openId}`;
+    log("Online with code: " + code);
+  });
+
+  peer.on("connection", (conn) => {
+    peersSet.add(conn.peer);
+    $("peers").textContent = `${peersSet.size} viewer(s)`;
+    log("Viewer connected: " + conn.peer);
+
+    conn.on("data", (ev) => {
+      if (ev && ev.type === "request-stream") {
+        const call = peer.call(conn.peer, currentStream);
+        call.on("close", () => log("Call ended: " + conn.peer));
+      } else if (ev && typeof ev === "object" && ev.type) {
+        window.linkdesk.inputEvent(ev);
+      }
+    });
+    conn.on("close", () => {
+      peersSet.delete(conn.peer);
+      $("peers").textContent = peersSet.size ? `${peersSet.size} viewer(s)` : "";
+      log("Viewer left: " + conn.peer);
+    });
+  });
+
+  peer.on("error", (e) => {
+    if (e.type === "unavailable-id") {
+      log(`Code "${code}" is already in use by someone else — pick another.`);
+      $("status").textContent = "Code taken — choose another";
+      $("status").classList.remove("live");
+      localStorage.removeItem(CODE_KEY);
+      $("codeInput").focus();
+    } else {
+      log("Error: " + e.message);
+      $("status").textContent = "Error — retrying…";
+      $("status").classList.remove("live");
+      setTimeout(() => connectPeer(code), 5000);
+    }
+  });
 }
 
 async function start() {
