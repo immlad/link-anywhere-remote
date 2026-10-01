@@ -66,10 +66,12 @@ function Viewer() {
       const peer = new PeerCtor();
       peerRef.current = peer;
 
-      peer.on("open", () => {
+      peer.on("open", (myId) => {
+        console.log("[ld] peer open", myId, "-> connecting to", id);
         const data = peer.connect(id, { reliable: true });
         dataRef.current = data;
         data.on("open", () => {
+          console.log("[ld] data open -> request-stream");
           data.send({ type: "request-stream" });
         });
         data.on("close", () => setStatus("ended"));
@@ -80,9 +82,11 @@ function Viewer() {
       });
 
       peer.on("call", (call) => {
+        console.log("[ld] incoming call from", call.peer);
         callRef.current = call;
         call.answer();
         call.on("stream", (stream) => {
+          console.log("[ld] stream received", stream.getTracks().length);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             videoRef.current.play().catch(() => {});
