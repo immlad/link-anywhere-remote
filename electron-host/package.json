@@ -1,0 +1,19 @@
+{
+  "name": "linkdesk-host",
+  "version": "1.0.0",
+  "description": "LinkDesk host agent — share your desktop over a link",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "electron-rebuild -f -w @nut-tree-fork/nut-js || true"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.2",
+    "peerjs": "^1.5.5",
+    "wrtc": "^0.4.7"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-rebuild": "^3.2.9"
+  }
+}
