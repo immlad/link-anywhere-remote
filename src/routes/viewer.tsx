@@ -38,8 +38,13 @@ function Viewer() {
   const peerRef = useRef<Peer | null>(null);
   const dataRef = useRef<DataConnection | null>(null);
   const callRef = useRef<MediaConnection | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    // Guard against React StrictMode's double-invoke creating two peers.
+    if (startedRef.current) return;
+    startedRef.current = true;
     const h = window.location.hash.replace(/^#/, "").trim();
     if (h) {
       setHostId(h);
@@ -52,15 +57,30 @@ function Viewer() {
   }, []);
 
   function cleanup() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
     callRef.current?.close();
     dataRef.current?.close();
     peerRef.current?.destroy();
     peerRef.current = null;
   }
 
+  function fail(msg: string) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    setError(msg);
+    setStatus("error");
+  }
+
   async function connect(id: string) {
     setStatus("connecting");
     setError(null);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      fail(
+        "Timed out waiting for the host. Check that the host agent is running and the code is correct. Strict firewalls or networks that block peer-to-peer traffic can also prevent a connection.",
+      );
+    }, 20000);
     try {
       const { default: PeerCtor } = await import("peerjs");
       const peer = new PeerCtor();
