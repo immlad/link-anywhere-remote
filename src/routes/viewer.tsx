@@ -95,10 +95,7 @@ function Viewer() {
           data.send({ type: "request-stream" });
         });
         data.on("close", () => setStatus("ended"));
-        data.on("error", (e) => {
-          setError(String(e));
-          setStatus("error");
-        });
+        data.on("error", (e) => fail(String(e)));
       });
 
       peer.on("call", (call) => {
@@ -107,6 +104,8 @@ function Viewer() {
         call.answer();
         call.on("stream", (stream) => {
           console.log("[ld] stream received", stream.getTracks().length);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             videoRef.current.play().catch(() => {});
@@ -116,10 +115,7 @@ function Viewer() {
         call.on("close", () => setStatus("ended"));
       });
 
-      peer.on("error", (e) => {
-        setError(e.message || String(e));
-        setStatus("error");
-      });
+      peer.on("error", (e) => fail(e.message || String(e)));
     } catch (e) {
       setError(String(e));
       setStatus("error");
