@@ -14,8 +14,11 @@ npm start
 
 A small window opens showing:
 
-- a **sharing code** (e.g. `linkdesk-ab12cd`)
+- a **sharing code you choose yourself** (e.g. `minh-office-pc`) — type it in, hit
+  Save, and it stays the same every time you open the app
 - a **shareable link** pointing at the LinkDesk viewer site
+
+If your code is already in use by someone else, the app will ask you to pick another.
 
 Open the link in any browser (or send it to someone) to control this computer.
 
