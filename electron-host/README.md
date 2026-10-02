@@ -27,7 +27,7 @@ Open the link in any browser (or send it to someone) to control this computer.
 Edit `renderer.html` and replace:
 
 ```js
-const VIEWER_BASE = "https://YOUR-GITHUB-PAGES-URL/viewer";
+const VIEWER_BASE = "https://immlad.github.io/link-anywhere-remote/viewer";
 ```
 
 with the URL where you deployed the LinkDesk web app (e.g. your GitHub Pages URL).
