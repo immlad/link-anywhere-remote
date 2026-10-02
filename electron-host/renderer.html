@@ -165,45 +165,33 @@ async function start() {
     },
   });
   log("Screen capture started");
+  currentStream = stream;
 
-  const id = randomId();
-  const peer = new Peer(id);
-  const peersSet = new Set();
-
-  peer.on("open", (openId) => {
-    $("status").textContent = "Online";
-    $("status").classList.add("live");
-    $("code").textContent = openId;
-    $("viewerUrl").value = `${VIEWER_BASE}#${openId}`;
-    log("Peer ready: " + openId);
-  });
-
-  peer.on("connection", (conn) => {
-    peersSet.add(conn.peer);
-    $("peers").textContent = `${peersSet.size} viewer(s)`;
-    log("Viewer connected: " + conn.peer);
-
-    conn.on("data", (ev) => {
-      if (ev && ev.type === "request-stream") {
-        const call = peer.call(conn.peer, stream);
-        call.on("close", () => log("Call ended: " + conn.peer));
-      } else if (ev && typeof ev === "object" && ev.type) {
-        window.linkdesk.inputEvent(ev);
-      }
-    });
-    conn.on("close", () => {
-      peersSet.delete(conn.peer);
-      $("peers").textContent = peersSet.size ? `${peersSet.size} viewer(s)` : "";
-      log("Viewer left: " + conn.peer);
-    });
-  });
-
-  peer.on("error", (e) => {
-    log("Error: " + e.message);
-    $("status").textContent = "Error";
-    $("status").classList.remove("live");
-  });
+  const saved = getSavedCode();
+  if (saved) {
+    $("codeInput").value = saved;
+    connectPeer(saved);
+  } else {
+    $("status").textContent = "Choose a code below to go online";
+    $("codeInput").focus();
+  }
 }
+
+$("saveCode").addEventListener("click", () => {
+  const code = sanitizeCode($("codeInput").value);
+  if (!code) {
+    log("Please enter a code first (letters, numbers, hyphens).");
+    return;
+  }
+  $("codeInput").value = code;
+  localStorage.setItem(CODE_KEY, code);
+  log("Code saved: " + code);
+  connectPeer(code);
+});
+
+$("codeInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("saveCode").click();
+});
 
 $("copy").addEventListener("click", async () => {
   await navigator.clipboard.writeText($("viewerUrl").value);
