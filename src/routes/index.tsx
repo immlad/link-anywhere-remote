@@ -74,7 +74,7 @@ function Home() {
               control. It opens a window with your sharing code and link.
             </p>
             <Button asChild size="lg" className="w-full">
-              <a href="/linkdesk-host.zip" download>
+              <a href={`${import.meta.env.BASE_URL}linkdesk-host.zip`} download>
                 <Download className="w-4 h-4 mr-2" />
                 Download Host Agent
               </a>
