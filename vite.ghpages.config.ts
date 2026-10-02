@@ -23,5 +23,10 @@ export default defineConfig({
   build: {
     outDir: "dist-ghpages",
     emptyOutDir: true,
+    rollupOptions: {
+      // Named ghpages.html (not index.html) so the Lovable dev server
+      // never picks it up as the app entry.
+      input: "ghpages.html",
+    },
   },
 });
