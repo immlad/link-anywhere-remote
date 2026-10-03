@@ -1,11 +1,3 @@
-// Static build configuration for GitHub Pages.
-//
-// This build is completely client-side.
-// It does NOT use TanStack Start SSR/server functionality.
-//
-// GitHub Pages URL:
-// https://immlad.github.io/link-anywhere-remote/
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -34,7 +26,6 @@ export default defineConfig({
     emptyOutDir: true,
 
     rollupOptions: {
-      // Keep this separate from the normal Vite/TanStack Start entry.
       input: "ghpages.html",
     },
   },
