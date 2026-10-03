@@ -9,9 +9,9 @@ let win;
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 520,
-    height: 640,
-    title: "LinkDesk Host",
+    width: 460,
+    height: 520,
+    title: "LinkDesk", autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
