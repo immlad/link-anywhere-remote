@@ -103,7 +103,11 @@ function Home() {
               className="space-y-3"
             >
               <Input
-                placeholder="Enter sharing code"
+                type="text"
+                placeholder="Enter sharing code, e.g. minh-office-pc"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 className="h-11"

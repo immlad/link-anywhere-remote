@@ -72,7 +72,9 @@ function Viewer() {
     setStatus("error");
   }
 
-  async function connect(id: string) {
+  async function connect(rawId: string) {
+    const clean = rawId.trim().toLowerCase();
+    const id = clean.startsWith("linkdesk-") ? clean : "linkdesk-" + clean;
     setStatus("connecting");
     setError(null);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
