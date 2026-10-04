@@ -58,7 +58,7 @@ var Zap = createLucideIcon("zap", [["path", {
 //#region src/routes/index.tsx?tsr-split=component
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-function Home() {
+function Home() { console.log("HOME RENDER", (window.__r=(window.__r||0)+1)); if(window.__r>50) debugger;
 	const [code, setCode] = (0, import_react.useState)("");
 	const navigate = Route.useNavigate();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
