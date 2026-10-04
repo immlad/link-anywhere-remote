@@ -84,6 +84,30 @@ let peer = null;
 let currentStream = null;
 const peersSet = new Set();
 
+const calls = new Map();
+// Quality presets: lower = less data, smoother on slow devices/connections.
+const QUALITY = {
+  low:    { scale: 3, fps: 15, bitrate: 600_000 },
+  medium: { scale: 2, fps: 24, bitrate: 1_500_000 },
+  high:   { scale: 1, fps: 30, bitrate: 4_000_000 },
+};
+async function applyQuality(call, level) {
+  const q = QUALITY[level] || QUALITY.medium;
+  const pc = call.peerConnection;
+  if (!pc) return;
+  for (const sender of pc.getSenders()) {
+    if (!sender.track || sender.track.kind !== "video") continue;
+    const params = sender.getParameters();
+    if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+    params.encodings[0].maxBitrate = q.bitrate;
+    params.encodings[0].maxFramerate = q.fps;
+    params.encodings[0].scaleResolutionDownBy = q.scale;
+    params.degradationPreference = "maintain-framerate";
+    try { await sender.setParameters(params); log("Quality: " + level); }
+    catch (e) { log("Quality change failed: " + e.message); }
+  }
+}
+
 function connectPeer(code) {
   if (peer) { try { peer.destroy(); } catch (_) {} }
   peersSet.clear();
@@ -110,7 +134,12 @@ function connectPeer(code) {
     conn.on("data", (ev) => {
       if (ev && ev.type === "request-stream") {
         const call = peer.call(conn.peer, currentStream);
-        call.on("close", () => log("Call ended: " + conn.peer));
+        calls.set(conn.peer, call);
+        call.on("close", () => { calls.delete(conn.peer); log("Call ended: " + conn.peer); });
+        if (ev.quality) setTimeout(() => applyQuality(call, ev.quality), 1500);
+      } else if (ev && ev.type === "quality") {
+        const call = calls.get(conn.peer);
+        if (call) applyQuality(call, ev.level);
       } else if (ev && typeof ev === "object" && ev.type) {
         window.linkdesk.inputEvent(ev);
       }
@@ -156,6 +185,7 @@ async function start() {
     },
   });
   log("Screen capture started");
+  stream.getVideoTracks().forEach((t) => { t.contentHint = "motion"; });
   currentStream = stream;
 
   const saved = getSavedCode();
