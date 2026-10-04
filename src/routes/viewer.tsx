@@ -28,6 +28,16 @@ export const Route = createFileRoute("/viewer")({
   component: Viewer,
 });
 
+type Quality = "low" | "medium" | "high";
+
+function defaultQuality(): Quality {
+  if (typeof navigator === "undefined") return "medium";
+  const c = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
+  if (c?.saveData || /2g|3g/.test(c?.effectiveType ?? "")) return "low";
+  if ((navigator.hardwareConcurrency ?? 8) <= 4) return "low";
+  return "medium";
+}
+
 type Status = "idle" | "connecting" | "connected" | "error" | "ended";
 
 function Viewer() {
@@ -40,11 +50,18 @@ function Viewer() {
   const callRef = useRef<MediaConnection | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedRef = useRef(false);
+  const [quality, setQuality] = useState<Quality>("medium");
+  const qualityRef = useRef<Quality>("medium");
+  const pendingMove = useRef<{ x: number; y: number } | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Guard against React StrictMode's double-invoke creating two peers.
     if (startedRef.current) return;
     startedRef.current = true;
+    const dq = defaultQuality();
+    qualityRef.current = dq;
+    setQuality(dq);
     const h = window.location.hash.replace(/^#/, "").trim();
     if (h) {
       setHostId(h);
@@ -94,7 +111,7 @@ function Viewer() {
         dataRef.current = data;
         data.on("open", () => {
           console.log("[ld] data open -> request-stream");
-          data.send({ type: "request-stream" });
+          data.send({ type: "request-stream", quality: qualityRef.current });
         });
         data.on("close", () => setStatus("ended"));
         data.on("error", (e) => fail(String(e)));
@@ -105,6 +122,10 @@ function Viewer() {
         callRef.current = call;
         call.answer();
         call.on("stream", (stream) => {
+          // Ask the browser to show frames immediately instead of buffering.
+          call.peerConnection?.getReceivers().forEach((rc) => {
+            (rc as RTCRtpReceiver & { playoutDelayHint?: number }).playoutDelayHint = 0;
+          });
           console.log("[ld] stream received", stream.getTracks().length);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
@@ -139,6 +160,23 @@ function Viewer() {
 
   const buttons = ["left", "middle", "right"] as const;
 
+  // Send at most one mouse move per animation frame (latest position only).
+  function queueMove(p: { x: number; y: number }) {
+    pendingMove.current = p;
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      if (pendingMove.current) sendInput({ type: "mousemove", ...pendingMove.current });
+      pendingMove.current = null;
+    });
+  }
+
+  function changeQuality(q: Quality) {
+    qualityRef.current = q;
+    setQuality(q);
+    sendInput({ type: "quality", level: q });
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="border-b border-border/60 px-4 py-3 flex items-center justify-between">
@@ -155,7 +193,19 @@ function Viewer() {
             </span>
           </div>
         </div>
-        <StatusBadge status={status} />
+        <div className="flex items-center gap-2">
+          <select
+            aria-label="Video quality"
+            value={quality}
+            onChange={(e) => changeQuality(e.target.value as Quality)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+          >
+            <option value="low">Fast (low quality)</option>
+            <option value="medium">Balanced</option>
+            <option value="high">Sharp (high quality)</option>
+          </select>
+          <StatusBadge status={status} />
+        </div>
       </header>
 
       <main className="flex-1 grid place-items-center p-4 bg-muted">
@@ -178,7 +228,7 @@ function Viewer() {
               <Input
                 value={hostId}
                 onChange={(e) => setHostId(e.target.value)}
-                placeholder="e.g. linkdesk-ab12cd"
+                placeholder="e.g. minh-office-pc"
               />
               <Button type="submit">Connect</Button>
             </form>
@@ -226,8 +276,7 @@ function Viewer() {
           tabIndex={0}
           onContextMenu={(e) => e.preventDefault()}
           onMouseMove={(e) => {
-            const p = relativeCoords(e);
-            sendInput({ type: "mousemove", ...p });
+            queueMove(relativeCoords(e));
           }}
           onMouseDown={(e) => {
             const p = relativeCoords(e);
