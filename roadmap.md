@@ -1,4 +1,4 @@
 # Roadmap
-- [ ] Fix code box freezing on the GitHub Pages site
-- [ ] Reduce cursor lag for remote control
-- [ ] Work well on slower controlling devices / weak connections (lower quality option)
+- [x] Fix code box freezing on the GitHub Pages site
+- [x] Reduce cursor lag for remote control
+- [x] Work well on slower controlling devices / weak connections (quality picker, auto low on slow devices)
