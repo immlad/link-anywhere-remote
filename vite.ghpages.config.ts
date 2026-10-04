@@ -8,6 +8,7 @@ const base = process.env.GH_PAGES_BASE || "/";
 
 export default defineConfig({
   base,
+  define: { "import.meta.env.VITE_STATIC": JSON.stringify("1") },
 
   plugins: [
     tsConfigPaths(),

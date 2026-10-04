@@ -102,6 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // The static GitHub Pages build mounts inside <div id="root">, so it must not render its own <html>.
+  if (import.meta.env.VITE_STATIC) return <>{children}</>;
   return (
     <html lang="en">
       <head>
