@@ -10,6 +10,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+declare const __LD_STATIC__: boolean | undefined;
+
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -102,6 +104,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // The static GitHub Pages build mounts inside <div id="root">, so it must not render its own <html>.
+  if (typeof __LD_STATIC__ !== "undefined" && __LD_STATIC__) return <>{children}</>;
   return (
     <html lang="en">
       <head>

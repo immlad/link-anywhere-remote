@@ -8,6 +8,7 @@ const base = process.env.GH_PAGES_BASE || "/";
 
 export default defineConfig({
   base,
+  define: { __LD_STATIC__: "true" },
 
   plugins: [
     tsConfigPaths(),

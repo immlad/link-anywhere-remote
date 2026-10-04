@@ -46,7 +46,26 @@ function getNut() {
   return nut;
 }
 
-ipcMain.handle("input-event", async (_e, ev) => {
+// Low-latency input queue: mouse moves are coalesced so only the newest
+// position is applied — a backlog of stale moves is what makes the cursor lag.
+const queue = [];
+let busy = false;
+ipcMain.on("input-event", (_e, ev) => {
+  if (ev.type === "mousemove") {
+    const last = queue[queue.length - 1];
+    if (last && last.type === "mousemove") queue[queue.length - 1] = ev;
+    else queue.push(ev);
+  } else queue.push(ev);
+  pump();
+});
+async function pump() {
+  if (busy) return;
+  busy = true;
+  while (queue.length) await handleInput(queue.shift());
+  busy = false;
+}
+
+async function handleInput(ev) {
   const n = getNut();
   if (!n) return;
   const { Point, Button, Key } = n;
@@ -71,7 +90,7 @@ ipcMain.handle("input-event", async (_e, ev) => {
   } catch (err) {
     console.error("input error", err);
   }
-});
+}
 
 function mapKey(ev, Key) {
   const map = {

@@ -33,7 +33,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <header className="border-b border-border/60 backdrop-blur-xl sticky top-0 z-10 bg-background/70">
+      <header className="border-b border-border/60 sticky top-0 z-10 bg-background">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center">
