@@ -2,7 +2,7 @@
 // Opens a window that shows the sharing code/link, captures the screen,
 // and streams it to viewers via WebRTC (PeerJS public cloud).
 
-const { app, BrowserWindow, desktopCapturer, ipcMain, screen } = require("electron");
+const { app, BrowserWindow, desktopCapturer, ipcMain, screen, powerSaveBlocker } = require("electron");
 const path = require("path");
 
 let win;
@@ -105,5 +105,19 @@ function mapKey(ev, Key) {
   return null;
 }
 
-app.whenReady().then(createWindow);
+// Only one copy at a time (it auto-starts with the computer).
+if (!app.requestSingleInstanceLock()) app.quit();
+app.on("second-instance", () => { if (win) { win.show(); win.focus(); } });
+
+app.whenReady().then(() => {
+  // Start automatically when the computer turns on / user signs in.
+  // The single-file .exe unpacks to a temp folder, so register the real .exe path.
+  if (app.isPackaged) {
+    const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    app.setLoginItemSettings({ openAtLogin: true, path: exe });
+  }
+  // Keep the computer awake while LinkDesk runs so it stays reachable.
+  powerSaveBlocker.start("prevent-app-suspension");
+  createWindow();
+});
 app.on("window-all-closed", () => app.quit());
