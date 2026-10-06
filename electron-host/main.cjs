@@ -111,7 +111,11 @@ app.on("second-instance", () => { if (win) { win.show(); win.focus(); } });
 
 app.whenReady().then(() => {
   // Start automatically when the computer turns on / user signs in.
-  if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
+  // The single-file .exe unpacks to a temp folder, so register the real .exe path.
+  if (app.isPackaged) {
+    const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    app.setLoginItemSettings({ openAtLogin: true, path: exe });
+  }
   // Keep the computer awake while LinkDesk runs so it stays reachable.
   powerSaveBlocker.start("prevent-app-suspension");
   createWindow();
