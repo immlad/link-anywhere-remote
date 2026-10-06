@@ -1,0 +1,36 @@
+name: Build LinkDesk.exe
+
+# Builds the single-file Windows host app and publishes it as the
+# "latest" GitHub Release, which the website's Download button links to.
+on:
+  push:
+    branches: [main]
+    paths: ["electron-host/**", ".github/workflows/build-exe.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        working-directory: electron-host
+        run: |
+          npm install --no-audit --no-fund --ignore-scripts
+          npm install -D electron-builder@24 --no-audit --no-fund --ignore-scripts
+      - name: Build portable exe
+        working-directory: electron-host
+        run: npx electron-builder --win portable --x64 --config.appId=app.linkdesk.host --config.productName=LinkDesk --config.directories.output=dist --config.npmRebuild=false --config.portable.artifactName=LinkDesk.exe
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: LinkDesk (latest)
+          make_latest: true
+          files: electron-host/dist/LinkDesk.exe

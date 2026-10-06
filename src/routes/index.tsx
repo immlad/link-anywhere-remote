@@ -3,7 +3,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import exeAsset from "@/assets/LinkDesk.exe.asset.json";
 import { Monitor, Download, Link as LinkIcon, Shield, Zap } from "lucide-react";
+
+declare const __LD_EXE_URL__: string | undefined;
+const EXE_URL = typeof __LD_EXE_URL__ !== "undefined" ? __LD_EXE_URL__ : exeAsset.url;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,13 +78,16 @@ function Home() {
               control. It opens a window with your sharing code and link.
             </p>
             <Button asChild size="lg" className="w-full">
-              <a href={`${import.meta.env.BASE_URL}linkdesk-host.zip`} download>
+              <a href={EXE_URL} download="LinkDesk.exe">
                 <Download className="w-4 h-4 mr-2" />
-                Download Host Agent
+                Download for Windows (.exe)
               </a>
             </Button>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Windows · macOS · Linux
+              Just double-click to run. It starts with your computer and keeps it awake.{" "}
+              <a className="underline" href={`${import.meta.env.BASE_URL}linkdesk-host.zip`} download>
+                Mac / Linux source
+              </a>
             </p>
           </Card>
 

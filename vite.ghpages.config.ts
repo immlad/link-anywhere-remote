@@ -8,7 +8,12 @@ const base = process.env.GH_PAGES_BASE || "/";
 
 export default defineConfig({
   base,
-  define: { __LD_STATIC__: "true" },
+  define: {
+    __LD_STATIC__: "true",
+    __LD_EXE_URL__: JSON.stringify(
+      `https://github.com/${process.env.GITHUB_REPOSITORY || "immlad/link-anywhere-remote"}/releases/latest/download/LinkDesk.exe`,
+    ),
+  },
 
   plugins: [
     tsConfigPaths(),
